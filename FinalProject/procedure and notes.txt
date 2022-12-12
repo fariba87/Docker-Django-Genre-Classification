@@ -1,0 +1,103 @@
+The Project procedure :  Genre Classification is a Multiclass Classification problem
+ 1) analyzing the dataset :
+	- it is imbalanced --> possible solutions:
+	- traditional machine learning such as RandomForest which also can consider imbalance dataset (needs finetuning hyperparameter)
+	- upsampling or downsampling
+	- SMOTE (for images )
+	- normal data augmentation (doesnt seem good idea)
+	- just fit the model with class weights ( augmenting the rare-sample classes is better choice)
+
+	** what i did: just split data strafifiedly
+   Data preprocessing:
+	- cleaning data from non alphabet character
+	- tokenize data with tokenizer fitted to train data and then applied to test data
+	- based on the distribution of number of words per description, i just consider the first 2000 words
+	- padding is needed for shorter sequences
+	- shuffle data, then split to train and val, then shuffle again only train data
+	 
+2)  Model Architecture :
+	- it is a kind of sequence modeling (many-to-one) 
+	- Embedding layer
+	- recurrent architecture is prefered (LSTM and GRU[faster] )  to preserve long information
+	- as multiclass classification (Dense layer with number of units = number of classes =10)
+
+3) Model compile and fit:
+- loss function : possible solutions:
+	- CategoricalCrossentropy
+	- focal loss (better for imbalanced dataset)
+	- optimization  : I used Adam  (both with constant learning rate and schedule)
+- metric:
+	- precision , recall , f1score, confusion matrix
+	- accuracy is not a good metric for imbalanced data
+##############################################################################################################################
+different try :
+    - train from scratch from sequence modeling Model
+    - using pretrained architectures like Roberta from HuggingFace which is customized BERT for text classification
+    - split train dataset to train and val
+    - sanity check (fit the model until achieving 100% accuracy (overfitting on one train data))
+
+Overfitting: 
+	 - maybe data is not shuffled (increase buffersize in tf.data.dataset.)
+	 - getting more data (natural or artificial[data augmentations])
+ - fixing optimization algorithm(train for more epoch- change lr- SVM[hinge loss]
+ - Dropout , BN, weight decay
+now lets try different approaches based on some tricks mentioned as the following:
+##############################################################################################################################
+tricks:
+ 
+1) one time setup: 
+    1) activation functions: Given for all the layers , expect the last : which I chose implicitely as softmax (from_logits=True in CategoricalCrossentropy loss)
+    2) data preprocess
+    3) weight initialization (and bias)
+	- (W):with Relu --> Hu initialization is better
+	- (W): I applied : Hu uniform for all ReLUs- Hu normal for Linear activation by turning of kernel constraint to avoid vanishing or exploding gradient - Glorot uniform for last Dense layer
+	- (B):since it is imbalanced : final layer init bias can be chosen =log (class_weight) 
+	- (B):if balanced data and multicalss: -log(C) : C number of classes
+    4) Regularization
+	- BN : it increases speed
+      - Data augmentation
+	     - help by giving more data(artificially generated) for model fitting
+   	     - as my problem is imbalances, we should just increment the size of rare samples
+	- L2 (weight decay)
+     
+	- Dropout: 
+		- usually after high parametric layers 
+		- usually after activation
+	 	- it causes training learning curve more noisy
+
+2) Training Dynamics: 1) learning rate scheduler:
+ - if it is tried: better to turn on weight decay (and epochs~100)
+ - usually not applied for ADAM (but i applied) :start from 0.001 and decreases
+         - high learning rate leads to nan loss , and low learing rate causes a plateau
+     2) Batchsize:
+ - if small : will not hurt but long training time
+     - if large : maybe cant find best weights
+ - when you double it you can double learning rate as well
+
+     3) Epochs:
+ - early stopping callback
+     4) we can also use grid search[more efficeintly: random search] to find best hyperparameter (using KerasClassifier in sckicit-learn wrapper)
+ in this case train the model for epoches 1 ~ 5 in Grid search, and chooose the best parameter and train the model
+                 using this set of hyperparameters for longer epochs (without LR decay)
+     5) cross validation:
+ train several models in parallel, and save the best model checkpoint
+3) after training
+     1) model ensembles:
+ - we can save several checkpoints of model during train and average them
+     2) transfer learning
+
+ ##############################################################################################################################
+analyzing learning curves:
+   1) if loss is in plateau:
+- maybe learning rate is so slow
+- maybe inappropriate wight initialization (it slows down training process) [if so high : explode - if so low: vanish]
+- maybe lr schedule can help
+- if train and val loss are both high --> maybe higher layer weights ~0
+   2) if loss just ossilate around a limit : training data is not representative in comparision to validation data
+   3) if loss start to decrease and then stopped: valid data is not representative -->increase test size
+   4) high oscilation in val loss : 1) batch size 2) non-scale data
+
+* underfitting: 1) maybe too simple architecture
+2) not good features
+3) we applied so many regularization
+* if val loss < train loss --> not a good split of data

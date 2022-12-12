@@ -1,0 +1,14 @@
+{
+ "modelName":"genre classification",
+ "modelType":"LSTM-based",
+ "SanityCheck":"False",
+ "batchSize":8,
+ "TotalEpoch":10,
+ "NumGRUlayer":2,
+ "NumGRUunit":128,
+ "LSTMunit":256,
+ "dropout":0.2,
+ "lr":0.0001,
+ "Shuffle":"False",
+ "valsplit":0.1
+}

@@ -1,0 +1,7 @@
+Genre Classification
+<form method = "post" enctype="multipart/form-data">
+    {%csrf-token %}
+    <input type ='file' name="txtfile" />
+    <input type ="submit" name="submit" value="Upload"/>
+</form>
+{{predictions}}
